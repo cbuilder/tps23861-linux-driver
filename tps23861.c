@@ -74,13 +74,35 @@ static irqreturn_t tps23861_irq_handler(int irq, void *device_data)
 	struct tps23861_data *ddata = (struct tps23861_data *)device_data;
 	irq_flags = tps23861_read_reg(ddata, INT_OCCURED_REG);
 	/* Critical faults */
-	if (IFAULT & irq_flags)
-		dev_info(&ddata->client->dev, "Icut or Ilim fault\n");
+	if (IFAULT & irq_flags) {
+		/* Icut */
+		ports = tps23861_read_reg(ddata, DISC_ICUT_COR_REG);
+		for (i = 0; i < TPS23861_PORTS_NUM; i++) {
+			if (ports & (1 << i))
+				dev_info(&ddata->client->dev,
+				    "port%d: overload occured", i);
+		}
+		/* Ilim */
+		ports = tps23861_read_reg(ddata, ILIM_STRT_COR_REG);
+		for (i = 0; i < TPS23861_PORTS_NUM; i++) {
+			if (ports & (1 << (i + 4)))
+				dev_info(&ddata->client->dev,
+				    "port%d: exceeded current limit", i);
+		}
+	}
 	if (SUPF & irq_flags)
-		dev_info(&ddata->client->dev, "Supply event fault\n");
+		dev_info(&ddata->client->dev, "power supply fault\n");
 	/* Deferrable events: PEC, PGC, DISF, DETC, CLASC, STRTF */
+	if (STRTF & irq_flags) {
+		ports = tps23861_read_reg(ddata, ILIM_STRT_COR_REG);
+		for (i = 0; i < TPS23861_PORTS_NUM; i++) {
+			if (ports & (1 << i))
+				dev_info(&ddata->client->dev,
+				    "port%d: start fault", i);
+		}
+	}
 	if (DISF & irq_flags) {
-		ports = tps23861_read_reg(ddata, FAULT_EVENT_COR_REG);
+		ports = tps23861_read_reg(ddata, DISC_ICUT_COR_REG);
 		for (i = 0; i < TPS23861_PORTS_NUM; i++) {
 			if (ports & (1 << (i + 4)))
 				dev_info(&ddata->client->dev,
@@ -387,7 +409,7 @@ static int tps23861_probe(struct i2c_client *client,
 			tps23861_read_reg(ddata, DID_SIL_REV_REG) & 0x1F,
 			tps23861_read_reg(ddata, FW_REV_REG) & 0x7);
 
-	tps23861_irq_enable(ddata, SUPEN | IFEN | CLCEN | DISEN);
+	tps23861_irq_enable(ddata, SUPEN | STRTEN | IFEN | CLCEN | DISEN);
 	res = request_threaded_irq(gpio_to_irq(pdata->irq), NULL,
 			tps23861_irq_handler,
 			IRQF_TRIGGER_FALLING|IRQF_ONESHOT,

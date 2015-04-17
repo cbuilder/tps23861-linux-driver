@@ -14,7 +14,8 @@
 #define INT_OCCURED_REG		0x00 /* Events occured */
 #define INT_ENABLE_REG		0x01 /* Interrupt enable */
 #define DET_EVENT_COR_REG	0x05 /* Detect & Class event per port (CoR) */
-#define FAULT_EVENT_COR_REG	0x07 /* Disconnect or Ilim event (CoR) */
+#define DISC_ICUT_COR_REG	0x07 /* Disconnect or Icut event (CoR) */
+#define ILIM_STRT_COR_REG	0x09 /* Ilim or start fault event (CoR) */
 #define PT_STATUS_BASE		0x0C /* Detection & Class status */
 #define PT_MODE_REG		0x12 /* Ports operating mode */
 #define PT_DIS_EN_REG		0x13 /* Disconnect enable */
